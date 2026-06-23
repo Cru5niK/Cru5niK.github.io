@@ -114,7 +114,7 @@ main{flex:1;padding:1.2rem;overflow:auto}
   <main id="mainContent">
     <div class="loading-msg">
       <div class="spinner"></div>
-      <div>Loading 8,000+ channels from iptv-org…</div>
+      <div>Loading channels...</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       <div id="progressText" style="font-size:11px;margin-top:.3rem;color:var(--muted)">Connecting…</div>
     </div>
@@ -145,9 +145,7 @@ main{flex:1;padding:1.2rem;overflow:auto}
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────
-const PLAYLIST_URLS = [
-  "https://iptv-org.github.io/iptv/index.m3u",
-];
+const CHANNELS_JSON = "./channels.json";
 
 // Priority categories to show first, with BD/India at top
 const PRIORITY = ["Bangladesh","India","Pakistan","SE Asia","Sports","News","Movies","Music","Kids","Documentary","Religion","Other"];
@@ -236,31 +234,50 @@ function assignCategory(ch) {
 
 // ── FETCH PLAYLIST ────────────────────────────────────────
 async function fetchPlaylist() {
-  const proxy = "https://corsproxy.io/?";
-  setProgress(10, "Connecting to iptv-org…");
-  for (const url of PLAYLIST_URLS) {
-    try {
-      setProgress(30, "Downloading playlist…");
-      const res = await fetch(proxy + encodeURIComponent(url));
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      setProgress(60, "Parsing channels…");
-      const text = await res.text();
-      setProgress(80, "Categorising…");
-      allChannels = parseM3U(text);
-      // Filter: only keep channels with English or no specified language (avoid non-English only)
-      // Actually keep all - user wants all channels
-      buildUI();
-      setProgress(100, "Done!");
-      document.getElementById("loadStatus").textContent = "✅ " + allChannels.length + " channels loaded";
-      return;
-    } catch(e) {
-      console.error("Fetch failed:", e);
+  try {
+
+    setProgress(20, "Loading channels...");
+
+    const response = await fetch(CHANNELS_JSON);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    setProgress(60, "Reading channels...");
+
+    allChannels = await response.json();
+
+    // Ensure category exists
+    allChannels.forEach(ch => {
+      if (!ch.cat) {
+        ch.cat = assignCategory(ch);
+      }
+    });
+
+    setProgress(80, "Building interface...");
+
+    buildUI();
+
+    setProgress(100, "Ready");
+
+    document.getElementById("loadStatus").textContent =
+      `✅ ${allChannels.length.toLocaleString()} channels loaded`;
+
+  } catch (err) {
+
+    console.error(err);
+
+    document.getElementById("loadStatus").textContent =
+      "❌ Failed to load channels";
+
+    showFetchError();
   }
+}
   // Fallback: use a smaller reliable mirror
   try {
     setProgress(40, "Trying mirror…");
-    const res = await fetch(proxy + encodeURIComponent("https://raw.githubusercontent.com/iptv-org/iptv/master/streams/bd.m3u"));
+    const res = await;
     const text = await res.text();
     allChannels = parseM3U(text);
     buildUI();
