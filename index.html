@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamBD — Free Live TV</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --card: #151d2e;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f4ff;
+    --muted: #8892a4;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --green: #22c55e;
+    --red: #ef4444;
+    --gold: #f59e0b;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; align-items: center; gap: 1rem; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 1.4rem; font-weight: 700; color: #60a5fa; letter-spacing: -0.5px; flex: 1; }
+  .logo span { color: var(--text); }
+  .live-badge { background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 1px; }
+  .search-bar { display: flex; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; gap: 8px; height: 36px; flex: 1; max-width: 280px; }
+  .search-bar input { background: none; border: none; outline: none; color: var(--text); font-size: 14px; width: 100%; }
+  .search-bar input::placeholder { color: var(--muted); }
+  .fifa-btn { background: #16a34a; border: none; color: white; font-size: 13px; font-weight: 600; padding: 0 16px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .fifa-btn:hover { background: #15803d; }
+  .pulse { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+  .stats-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 1.5rem; font-size: 13px; color: var(--muted); overflow-x: auto; flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .layout { display: flex; min-height: calc(100vh - 110px); }
+  aside { width: 220px; min-width: 220px; background: var(--bg2); border-right: 1px solid var(--border); padding: 1rem 0; }
+  .cat-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--muted); padding: 0 1rem 0.5rem; text-transform: uppercase; }
+  .cat-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; cursor: pointer; font-size: 14px; color: var(--muted); border-left: 3px solid transparent; transition: all 0.15s; }
+  .cat-item:hover { background: var(--bg3); color: var(--text); }
+  .cat-item.active { background: rgba(59,130,246,0.12); color: #60a5fa; border-left-color: #3b82f6; }
+  .cat-count { background: var(--bg3); font-size: 11px; padding: 2px 7px; border-radius: 20px; }
+  main { flex: 1; padding: 1.5rem; overflow: auto; }
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; margin-top: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+  .channel-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+  .channel-card:hover { transform: translateY(-2px); border-color: #3b82f6; }
+  .channel-thumb { height: 110px; background: #1a2235; display: flex; align-items: center; justify-content: center; position: relative; }
+  .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+  .channel-card:hover .overlay { opacity: 1; }
+  .play-icon { width: 44px; height: 44px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; }
+  .play-icon::after { content: ''; border-left: 16px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
+  .ch-live { position: absolute; top: 8px; left: 8px; background: var(--red); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .ch-hd { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #60a5fa; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .channel-info { padding: 0.6rem 0.75rem; }
+  .ch-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 200; align-items: center; justify-content: center; }
+  #modal.open { display: flex; }
+  .modal-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; width: 90vw; max-width: 860px; overflow: hidden; }
+  .modal-header { padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .close-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  #player-frame { width: 100%; aspect-ratio: 16/9; background: #000; border: none; display: block; }
+  .modal-footer { padding: 0.75rem 1.25rem; display: flex; gap: 0.75rem; align-items: center; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .alt-link { background: var(--bg3); border: 1px solid var(--border); color: #60a5fa; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; text-decoration: none; }
+  .alt-link:hover { background: rgba(59,130,246,0.15); }
+  .fifa-section { background: rgba(22,163,74,0.1); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .fifa-header { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .fifa-header h2 { font-size: 18px; font-weight: 700; }
+  .wc-badge { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(245,158,11,0.3); }
+  .match-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.75rem; }
+  .match-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem; cursor: pointer; transition: border-color 0.15s; }
+  .match-card:hover { border-color: var(--green); }
+  .match-time { font-size: 11px; color: var(--green); font-weight: 600; margin-bottom: 6px; }
+  .match-teams { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .vs { font-size: 10px; color: var(--muted); }
+  .match-label { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .loading-msg { text-align: center; padding: 3rem; color: var(--muted); font-size: 14px; }
+  @media (max-width: 600px) { aside { display: none; } .logo { font-size: 1.1rem; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Stream<span>BD</span> <span class="live-badge">LIVE</span></div>
+  <div class="search-bar">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#8892a4" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Search channels..." oninput="filterChannels()">
+  </div>
+  <button class="fifa-btn" onclick="showFIFA()">
+    <div class="pulse"></div>⚽ FIFA World Cup 2026
+  </button>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="dot"></div> Live Channels: <strong id="totalLive">—</strong></div>
+  <div class="stat">🇧🇩 Bangladesh: <strong id="bdCount">—</strong></div>
+  <div class="stat">🇮🇳 India: <strong id="inCount">—</strong></div>
+  <div class="stat">🌏 SE Asia: <strong id="seaCount">—</strong></div>
+  <div class="stat">⚽ Sports: <strong id="sportCount">—</strong></div>
+  <div class="stat">📰 News: <strong id="newsCount">—</strong></div>
+  <div class="stat">🎬 Movies: <strong id="movCount">—</strong></div>
+</div>
+
+<div class="layout">
+  <aside>
+    <div class="cat-label">Categories</div>
+    <div id="categoryList"></div>
+  </aside>
+  <main id="mainContent">
+    <div class="loading-msg">📡 Scanning live channels...</div>
+  </main>
+</div>
+
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Channel</div>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <iframe id="player-frame" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
+    <div class="modal-footer">
+      <span>🔗 Try streams:</span>
+      <div id="altLinks" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHANNELS = [
+  {name:"BTV (Bangladesh Television)",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCQqXxEi8R4nEQ9H3tFUNq2Q&autoplay=1",alt:["https://www.btvonline.gov.bd"]},
+  {name:"Somoy TV",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCe7UcqO0qWOtFrRMgTp7Mog&autoplay=1",alt:[]},
+  {name:"Channel 24 Bangladesh",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:true,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCY4bFGh0-g3fpLCWN-bfEOQ&autoplay=1",alt:[]},
+  {name:"Independent TV BD",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:true,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCkFR5CRr_YmfTwQYM1OREUA&autoplay=1",alt:[]},
+  {name:"Jamuna TV",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCXWFK8VKJ-wAlmBlPDmqriQ&autoplay=1",alt:[]},
+  {name:"Ekattor TV",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCk5KqGUMK_ZTJUaKCRrL06w&autoplay=1",alt:[]},
+  {name:"RTV Bangladesh",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCdBpkLzV0SFCIr3z8U_v9dA&autoplay=1",alt:[]},
+  {name:"Desh TV",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCRlBfhqKE9q_cP-GJDtQFAw&autoplay=1",alt:[]},
+  {name:"GTV Bangladesh (Sports)",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:true,logo:"⚽",embed:"https://www.youtube.com/embed/live_stream?channel=UCH9aRlQ0BhKrKYFjzlImF0w&autoplay=1",alt:[]},
+  {name:"NTV Bangladesh",country:"🇧🇩",cc:"BD",cat:"Bangladesh",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCr3pCGXI-5HNqMmscJBTgFQ&autoplay=1",alt:[]},
+  {name:"DD National",country:"🇮🇳",cc:"IN",cat:"India",hd:false,logo:"📺",embed:"https://www.youtube.com/embed/live_stream?channel=UCvfOrdMBFaEFeFJiQqv0igQ&autoplay=1",alt:[]},
+  {name:"DD News India",country:"🇮🇳",cc:"IN",cat:"India",hd:false,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCt4t-jeY85JegMlZ-E5UWtA&autoplay=1",alt:[]},
+  {name:"Republic TV India",country:"🇮🇳",cc:"IN",cat:"India",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCQnw06E2ixLqzxQW2oKbNLQ&autoplay=1",alt:[]},
+  {name:"NDTV 24x7",country:"🇮🇳",cc:"IN",cat:"India",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCZFMm1mMw0F81Z37aaEzTUA&autoplay=1",alt:[]},
+  {name:"Times Now",country:"🇮🇳",cc:"IN",cat:"India",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UC9kNIZjQT1lCW6XzVN2Svfg&autoplay=1",alt:[]},
+  {name:"Aaj Tak",country:"🇮🇳",cc:"IN",cat:"India",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UC5vGGDqBFOBn5Mc4RuAG_yw&autoplay=1",alt:[]},
+  {name:"India TV",country:"🇮🇳",cc:"IN",cat:"India",hd:false,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCqn9PFdHalD-Mvp-WSKV9aQ&autoplay=1",alt:[]},
+  {name:"News18 India",country:"🇮🇳",cc:"IN",cat:"India",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCtR8nKbXeKK-hFp7UCNDIJg&autoplay=1",alt:[]},
+  {name:"T Sports Bangladesh",country:"🇧🇩",cc:"BD",cat:"Sports",hd:true,logo:"⚽",embed:"https://www.youtube.com/embed/live_stream?channel=UCr7YPBx9JOqFdR1KexbJG3w&autoplay=1",alt:[]},
+  {name:"Star Sports India",country:"🇮🇳",cc:"IN",cat:"Sports",hd:true,logo:"⚽",embed:"https://www.youtube.com/embed/live_stream?channel=UCh4LBZS3Jj6OYQE_AHn0rBw&autoplay=1",alt:[]},
+  {name:"Sony Sports Network",country:"🇮🇳",cc:"IN",cat:"Sports",hd:true,logo:"⚽",embed:"https://www.youtube.com/embed/live_stream?channel=UCmwzDE8N8t29pLMRFMtx5QQ&autoplay=1",alt:[]},
+  {name:"Cricbuzz Live",country:"🇮🇳",cc:"IN",cat:"Sports",hd:false,logo:"🏏",embed:"https://www.youtube.com/embed/live_stream?channel=UCLi-bH3PGQ0tFsHiLXSKLhw&autoplay=1",alt:[]},
+  {name:"CNA Singapore",country:"🇸🇬",cc:"SG",cat:"SE Asia",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCmUMmAk3YMoMOe-kMtR4BOw&autoplay=1",alt:["https://live-hls-web-aje.getaj.net/AJE/index.m3u8"]},
+  {name:"NHK World Japan",country:"🇯🇵",cc:"JP",cat:"SE Asia",hd:true,logo:"🌏",embed:"https://www.youtube.com/embed/live_stream?channel=UCGG7g1wHOEEtnrlgF4dMqEQ&autoplay=1",alt:["https://nhkworld-amd.akamaized.net/nhkworld/nhkwlive-mpeg-f/7/1oQpS2Hn/index.m3u8"]},
+  {name:"Arirang TV Korea",country:"🇰🇷",cc:"KR",cat:"SE Asia",hd:true,logo:"🌏",embed:"https://www.youtube.com/embed/live_stream?channel=UCBkOuTyp01n-DsaxTIzjB6g&autoplay=1",alt:[]},
+  {name:"Al Jazeera English",country:"🌍",cc:"QA",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCNye-wNBqNL5ZzHSJdpkU3Q&autoplay=1",alt:["https://live-hls-web-aje.getaj.net/AJE/index.m3u8"]},
+  {name:"TRT World",country:"🇹🇷",cc:"TR",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UC7fWeaHhqgM4Ry-RMpM2YYw&autoplay=1",alt:["https://tv-trtworld.live.trt.com.tr/master.m3u8"]},
+  {name:"DW News English",country:"🇩🇪",cc:"DE",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCknLrEdhRCp1aegoMqRaCZg&autoplay=1",alt:["https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8"]},
+  {name:"France 24 English",country:"🇫🇷",cc:"FR",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5VrQ8yKZ-UWmAoBg&autoplay=1",alt:[]},
+  {name:"Euronews English",country:"🇪🇺",cc:"EU",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCg2qZVKCcnKnMEM7gX_MiXg&autoplay=1",alt:[]},
+  {name:"Sky News",country:"🇬🇧",cc:"GB",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCoMdktPbSTixAyNGwb-UYkQ&autoplay=1",alt:[]},
+  {name:"VOA News Live",country:"🇺🇸",cc:"US",cat:"News",hd:true,logo:"📰",embed:"https://www.youtube.com/embed/live_stream?channel=UCUaY-yjCMq5RIfxnBJTLOaQ&autoplay=1",alt:["https://voa-lh.akamaihd.net/i/voa_prog@626492/master.m3u8"]},
+  {name:"NASA TV Live",country:"🇺🇸",cc:"US",cat:"Education & Science",hd:true,logo:"🚀",embed:"https://www.youtube.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ&autoplay=1",alt:["https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/index.m3u8"]},
+  {name:"Sony Entertainment TV",country:"🇮🇳",cc:"IN",cat:"Movies & Entertainment",hd:false,logo:"🎬",embed:"https://www.youtube.com/embed/live_stream?channel=UCpASXcPKFOJ5IK4KFfm8j7Q&autoplay=1",alt:[]},
+  {name:"Zee Cinema India",country:"🇮🇳",cc:"IN",cat:"Movies & Entertainment",hd:false,logo:"🎬",embed:"https://www.youtube.com/embed/live_stream?channel=UCFlA0uqBLT1Cto3bFLgOknw&autoplay=1",alt:[]},
+  {name:"B4U Movies",country:"🇮🇳",cc:"IN",cat:"Movies & Entertainment",hd:false,logo:"🎬",embed:"https://www.youtube.com/embed/live_stream?channel=UCmQvHPPpnDiJhf38kV1J4Rg&autoplay=1",alt:[]},
+];
+
+const FIFA_MATCHES = [
+  {teams:["USA","Bolivia"],time:"LIVE NOW 🔴",label:"Group A · Match 1",yt:"UCiWLfSweyRNmLpgEHekhoAg"},
+  {teams:["Canada","Morocco"],time:"LIVE NOW 🔴",label:"Group B · Match 1",yt:"UCpX2oPH_j7HLOGYmUHg8SFg"},
+  {teams:["Brazil","Mexico"],time:"Today 20:00",label:"Group D · Match 2",yt:"UCi2C-EzIfDUJlGnkIMDU7iA"},
+  {teams:["Argentina","Chile"],time:"Today 23:00",label:"Group E · Match 2",yt:"UCvFS6AAVCF9JL01dSBOajZg"},
+  {teams:["England","Tunisia"],time:"Tomorrow 18:00",label:"Group C · Match 1",yt:"UCBJycsmduvYEL83-oeldSFg"},
+  {teams:["Germany","Japan"],time:"Tomorrow 21:00",label:"Group F · Match 1",yt:"UCknLrEdhRCp1aegoMqRaCZg"},
+];
+
+const catOrder = ["Bangladesh","India","SE Asia","Sports","News","Movies & Entertainment","Education & Science"];
+const catEmoji = {Bangladesh:"🇧🇩",India:"🇮🇳","SE Asia":"🌏",Sports:"⚽",News:"📰","Movies & Entertainment":"🎬","Education & Science":"📚"};
+let activeCategory = "All";
+let categories = {};
+
+function init() {
+  CHANNELS.forEach(ch => {
+    if (!categories[ch.cat]) categories[ch.cat] = [];
+    categories[ch.cat].push(ch);
+  });
+  const list = document.getElementById("categoryList");
+  list.innerHTML = `<div class="cat-item active" onclick="setCategory('All')"><span>📺 All Channels</span><span class="cat-count">${CHANNELS.length}</span></div>`;
+  catOrder.forEach(cat => {
+    if (categories[cat]) {
+      list.innerHTML += `<div class="cat-item" onclick="setCategory('${cat}')"><span>${catEmoji[cat]||'📺'} ${cat}</span><span class="cat-count">${categories[cat].length}</span></div>`;
+    }
+  });
+  document.getElementById("totalLive").textContent = CHANNELS.length;
+  document.getElementById("bdCount").textContent = CHANNELS.filter(c=>c.cc==="BD").length;
+  document.getElementById("inCount").textContent = CHANNELS.filter(c=>c.cc==="IN").length;
+  document.getElementById("seaCount").textContent = CHANNELS.filter(c=>["SG","HK","JP","KR","PH","MY"].includes(c.cc)).length;
+  document.getElementById("sportCount").textContent = (categories["Sports"]||[]).length;
+  document.getElementById("newsCount").textContent = (categories["News"]||[]).length;
+  document.getElementById("movCount").textContent = (categories["Movies & Entertainment"]||[]).length;
+  renderMain(CHANNELS);
+}
+
+function setCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll(".cat-item").forEach(el => {
+    const txt = el.textContent;
+    el.classList.toggle("active", cat==="All" ? txt.includes("All Channels") : txt.includes(cat));
+  });
+  renderMain(cat==="All" ? CHANNELS : categories[cat]||[]);
+}
+
+function filterChannels() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const base = activeCategory==="All" ? CHANNELS : (categories[activeCategory]||[]);
+  renderMain(q ? base.filter(c=>c.name.toLowerCase().includes(q)||c.country.includes(q)) : base);
+}
+
+function renderMain(channels) {
+  const main = document.getElementById("mainContent");
+  let html = "";
+  if (activeCategory==="All" || activeCategory==="Sports") {
+    html += `<div class="fifa-section"><div class="fifa-header"><span style="font-size:2rem">🏆</span><h2>FIFA World Cup 2026™</h2><span class="wc-badge">USA · Canada · Mexico</span></div><div class="match-cards">`;
+    FIFA_MATCHES.forEach((m,i) => {
+      html += `<div class="match-card" onclick="openFIFA(${i})"><div class="match-time">${m.time}</div><div class="match-teams"><span>${m.teams[0]}</span><span class="vs">VS</span><span>${m.teams[1]}</span></div><div class="match-label">${m.label}</div></div>`;
+    });
+    html += `</div></div>`;
+  }
+  if (!channels.length) { main.innerHTML = html + `<div class="loading-msg">No channels found.</div>`; return; }
+  const grouped = {};
+  if (activeCategory==="All") {
+    channels.forEach(ch => { if(!grouped[ch.cat]) grouped[ch.cat]=[]; grouped[ch.cat].push(ch); });
+    catOrder.forEach(cat => {
+      if (!grouped[cat]||!grouped[cat].length) return;
+      html += buildSection(cat, grouped[cat]);
+    });
+  } else {
+    html += buildSection(activeCategory, channels);
+  }
+  main.innerHTML = html;
+}
+
+function buildSection(cat, chs) {
+  let h = `<div class="section-title"><span>${catEmoji[cat]||'📺'} ${cat}</span><span>${chs.length} channels</span></div><div class="channel-grid">`;
+  chs.forEach(ch => {
+    const idx = CHANNELS.indexOf(ch);
+    h += `<div class="channel-card" onclick="openChannel(${idx})">
+      <div class="channel-thumb">
+        <span style="font-size:2.5rem">${ch.logo}</span>
+        <div class="overlay"><div class="play-icon"></div></div>
+        <span class="ch-live">● LIVE</span>
+        ${ch.hd?'<span class="ch-hd">HD</span>':''}
+      </div>
+      <div class="channel-info">
+        <div class="ch-name">${ch.name}</div>
+        <div class="ch-meta">${ch.country} · ${ch.cat}</div>
+      </div>
+    </div>`;
+  });
+  return h + `</div>`;
+}
+
+function openChannel(idx) {
+  const ch = CHANNELS[idx];
+  document.getElementById("modalTitle").textContent = ch.country + " " + ch.name;
+  document.getElementById("player-frame").src = ch.embed;
+  const al = document.getElementById("altLinks");
+  al.innerHTML = `<a class="alt-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ch.name+' live stream')}" target="_blank">Search YouTube ↗</a>`;
+  ch.alt.forEach((s,i) => {
+    al.innerHTML += `<a class="alt-link" href="${s}" target="_blank">M3U8 Stream ${i+1} ↗</a>`;
+  });
+  document.getElementById("modal").classList.add("open");
+}
+
+function openFIFA(idx) {
+  const m = FIFA_MATCHES[idx];
+  document.getElementById("modalTitle").textContent = `⚽ ${m.teams[0]} vs ${m.teams[1]} — FIFA World Cup 2026`;
+  document.getElementById("player-frame").src = `https://www.youtube.com/embed/live_stream?channel=${m.yt}&autoplay=1`;
+  document.getElementById("altLinks").innerHTML = `
+    <a class="alt-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent(m.teams[0]+' vs '+m.teams[1]+' FIFA 2026 live')}" target="_blank">Search YouTube ↗</a>
+    <a class="alt-link" href="https://streameast.app" target="_blank">StreamEast ↗</a>
+    <a class="alt-link" href="https://soccerstreams100.net" target="_blank">SoccerStreams ↗</a>`;
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  document.getElementById("player-frame").src="";
+}
+
+function showFIFA() { setCategory("All"); window.scrollTo(0,0); }
+
+document.getElementById("modal").addEventListener("click", e => { if(e.target===document.getElementById("modal")) closeModal(); });
+init();
+</script>
+</body>
+</html>
