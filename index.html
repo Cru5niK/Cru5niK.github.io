@@ -259,8 +259,6 @@ async function fetchPlaylist() {
 
     buildUI();
 
-    setProgress(100, "Ready");
-
     document.getElementById("loadStatus").textContent =
       `✅ ${allChannels.length.toLocaleString()} channels loaded`;
 
@@ -271,14 +269,12 @@ async function fetchPlaylist() {
     document.getElementById("loadStatus").textContent =
       "❌ Failed to load channels";
 
-    showFetchError();
-
-  }
-}
-
 function setProgress(pct, msg) {
-  document.getElementById("progressFill").style.width = pct + "%";
-  document.getElementById("progressText").textContent = msg;
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+
+  if (progressFill) progressFill.style.width = pct + "%";
+  if (progressText) progressText.textContent = msg;
 }
 
 function showFetchError() {
