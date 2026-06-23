@@ -271,6 +271,11 @@ async function fetchPlaylist() {
     document.getElementById("loadStatus").textContent =
       "❌ Failed to load channels";
 
+    showFetchError();
+
+  }
+}
+
 function setProgress(pct, msg) {
   document.getElementById("progressFill").style.width = pct + "%";
   document.getElementById("progressText").textContent = msg;
